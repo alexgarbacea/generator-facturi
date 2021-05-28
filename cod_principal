@@ -1,0 +1,532 @@
+//GENERATOR FACTURI GOOGLE SHEETS 
+function facturaNoua() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var generator = ss.getSheetByName("Generare");
+  var factura = ss.getSheetByName("Factura");
+
+  var ui = SpreadsheetApp.getUi();
+
+  var raspuns = ui.alert("Factură nouă", "Crează o factură nouă cu datele introduse?", ui.ButtonSet.YES_NO);
+
+  if(raspuns == ui.Button.NO){
+    return;
+  }
+
+  generator.getRange("L34").setValue("Se generează.. așteptați..");//LOADING
+  //DATELE DIN PARTEA DE SUS
+    //FIRMA MEA
+  factura.getRange("B3").setValue(generator.getRange("C6").getValue());
+  factura.getRange("B4").setValue("Nr. reg. com: "+generator.getRange("I6").getValue());
+  factura.getRange("B5").setValue("CIF: "+generator.getRange("G6").getValue());
+  factura.getRange("B6").setValue(generator.getRange("C8").getValue());
+  factura.getRange("B7").setValue("Telefon: "+""+generator.getRange("C10").getValue());
+  factura.getRange("B8").setValue(generator.getRange("G10").getValue());
+  factura.getRange("E4").setValue(generator.getRange("H8").getValue());//NOU
+  factura.getRange("E5").setValue("Banca: "+generator.getRange("L8").getValue());//NOU
+    //NR FACT
+  factura.getRange("G4").setValue(generator.getRange("F12").getValue());
+  factura.getRange("G5").setValue(generator.getRange("C12").getValue());
+  factura.getRange("G6").setValue(new Date()).setNumberFormat('dd/mm/yyyy');
+    //CLIENT
+  factura.getRange("B11").setValue(generator.getRange("C17").getValue());
+  factura.getRange("B12").setValue("Nr. reg. com: "+generator.getRange("I17").getValue());
+  factura.getRange("B13").setValue("CIF: "+generator.getRange("G17").getValue());
+  factura.getRange("B14").setValue(generator.getRange("C19").getValue());
+  factura.getRange("B15").setValue("Telefon: "+""+generator.getRange("C21").getValue());
+  factura.getRange("B16").setValue(generator.getRange("G21").getValue());
+  factura.getRange("E12").setValue(generator.getRange("H19").getValue());//NOU
+  factura.getRange("E13").setValue("Banca: "+generator.getRange("L19").getValue());//NOU
+
+  //DATELE DIN PARTEA DE JOS
+  lastRowFact = factura.getLastRow();
+
+  var lastRowFact = generator.getLastRow()+1;
+
+  // FIND HOW MANY ITEMS ROWS TO DELETE
+  var x_count = 0
+  for(var v = 19; v <= lastRowFact; v++)
+  {
+    
+    if(factura.getRange(v, 2).getValue() != 'Vă mulțumim!')
+    {  
+      x_count++;
+    }
+    else
+    {
+      break;
+    }
+  }
+
+  var lastRowFact = 19 + x_count;
+  //STERGE RANDURILE EXISTENTE
+   if((lastRowFact - 19) != 0)
+  {
+    factura.deleteRows(19, lastRowFact - 19);
+  }  
+
+  var z = 0;
+  var subTotal = 0;
+
+  var ct = 0
+  var lastRow = generator.getLastRow();
+    for(var e = 32; v <= lastRow; e++)
+    {
+      
+      if(generator.getRange(e, 1).isBlank() != true)
+      {  
+        ct++;
+      }
+      else
+      {
+        break;
+      }
+    }
+  lastRowProd = ct+32;
+
+  for(var y = 32; y < lastRowProd; y++)
+  {
+    //INSERT ROW ON PRINT SHEET
+    factura.insertRowsAfter(18 + z, 1);
+    
+    //GET ITEM VALUES FROM INVOICE SHEET
+    var descr = generator.getRange(y, 1).getValue();
+    var quantity = generator.getRange(y, 2).getValue();
+    var unitPrice = generator.getRange(y, 3).getValue();
+    
+    // PRICE TOTALS
+    var totalPrice = quantity * unitPrice;
+    subTotal += totalPrice;
+    
+    // POPULATE TOTALS ON PRINT SHEET
+    factura.getRange(18 + z + 1, 2).setValue(descr).setFontFamily('Roboto').setFontSize(10).setFontColor("black");
+    factura.getRange(18 + z + 1, 5).setValue(quantity).setFontFamily('Roboto').setFontSize(10).setFontColor("black").setNumberFormat("#,###");
+    factura.getRange(18 + z + 1, 6).setValue(unitPrice).setFontFamily('Roboto').setFontSize(10).setFontColor("black").setNumberFormat("#,###.00");
+    factura.getRange(18 + z + 1, 7).setValue(totalPrice).setFontFamily('Roboto').setFontSize(10).setFontColor("black").setNumberFormat("#,###.00");
+    
+    z++;
+  }
+  //SUBTOTAL
+  factura.getRange(18 + z + 1, 7).setValue(subTotal).setNumberFormat("#,###.00").setFontFamily('Roboto').setFontSize(10).setFontColor("black");
+  //TVA
+  if(generator.getRange("I12").getValue()!='Neplătitor'){
+    factura.getRange(18 + z + 2, 7).setValue(generator.getRange("I12").getValue()/100);
+    factura.getRange(18 + z + 2, 6).setValue("%TVA");
+    factura.getRange(18 + z + 3, 6).setValue("Valoare TVA");
+    var tvaTot = factura.getRange(18 + z + 2, 7).getValue() * subTotal;
+    factura.getRange(18 + z + 3, 7).setValue(tvaTot);
+  }
+  else{
+    factura.getRange(18 + z + 2, 7).setValue("");
+    factura.getRange(18 + z + 2, 6).setValue("");
+    factura.getRange(18 + z + 3, 6).setValue("");
+    factura.getRange(18 + z + 3, 7).setValue("");
+  }
+
+  //ADAUGA FACTURA IN ISTORIC
+  var istoric = ss.getSheetByName("Istoric Facturi");
+  var lastRowIstoric = istoric.getLastRow()+1;
+
+  var nrCrt = istoric.getRange(lastRowIstoric-1,1).getValue()+1;
+    //ADAUGA IN LISTA
+  istoric.getRange(lastRowIstoric,1).setValue(nrCrt);
+  istoric.getRange(lastRowIstoric,2).setValue(factura.getRange("G5").getValue());
+  istoric.getRange(lastRowIstoric,3).setValue(factura.getRange("G4").getValue());
+  istoric.getRange(lastRowIstoric,4).setValue(factura.getRange("B11").getValue());
+  istoric.getRange(lastRowIstoric,5).setValue(new Date()).setNumberFormat('dd/mm/yyyy');
+  istoric.getRange(lastRowIstoric,6).setValue(factura.getRange(18 + z + 4, 6).getValue());
+  istoric.getRange(lastRowIstoric,7).setValue(factura.getRange("B3").getValue());
+  istoric.getRange(lastRowIstoric,8).setValue("Neîncasată");
+
+  //FINALIZARE
+  generator.getRange("L34").setValue("");//LOADING
+  ui.alert("Factura a fost generată cu succes și se află în pagina Factura");
+
+  SpreadsheetApp.setActiveSheet(factura);
+
+}
+
+function adaugaFirmaMeaCheck(){
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var firma = ss.getSheetByName("Firmele mele");
+
+  var ui = SpreadsheetApp.getUi();
+
+  if(firma.getRange("C4").isBlank()==true){
+    ui.alert("Introdu un nume");
+    return false;
+  }
+
+  if(firma.getRange("C12").isBlank()==true){
+    ui.alert("Adaugă un număr de început de facturi");
+    return false;
+  }
+
+  if(firma.getRange("F12").isBlank()==true){
+    ui.alert("Alege dintre plătitor de TVA sau nu");
+    return false;
+  }
+
+  return true;
+  
+}
+
+function adaugaClientCheck(){
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var firma = ss.getSheetByName("Clienți");
+
+  var ui = SpreadsheetApp.getUi();
+
+  if(firma.getRange("C4").isBlank()==true){
+    ui.alert("Introdu un nume");
+    return false;
+  }
+
+  return true;
+  
+}
+
+function adaugaProdusCheck(){
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var firma = ss.getSheetByName("Produse si servicii");
+
+  var ui = SpreadsheetApp.getUi();
+
+  if(firma.getRange("C4").isBlank()==true){
+    ui.alert("Introdu o descriere");
+    return false;
+  }
+
+  if(firma.getRange("C6").isBlank()==true){
+    ui.alert("Introdu un preț unitar");
+    return false;
+  }
+
+  return true;
+  
+}
+
+function adaugaFirma(){
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var firma = ss.getSheetByName("Firmele mele");
+
+  var ui = SpreadsheetApp.getUi();
+
+  var raspuns = ui.alert("Adaugă firma", "Vrei să adaugi această firmă?", ui.ButtonSet.YES_NO);
+
+  if(raspuns == ui.Button.NO){
+    return;
+  }
+  if(adaugaFirmaMeaCheck()){
+
+    var blankRow = firma.getLastRow()+1;
+
+    //ADAUGA FIRMA NOUA
+    firma.getRange(blankRow,1).setValue(firma.getRange("C4").getValue());
+    firma.getRange(blankRow,2).setValue(firma.getRange("C6").getValue());
+    firma.getRange(blankRow,3).setValue(firma.getRange("F6").getValue());
+    firma.getRange(blankRow,4).setValue(firma.getRange("C8").getValue());
+    firma.getRange(blankRow,5).setValue(firma.getRange("C10").getValue());
+    firma.getRange(blankRow,6).setValue(firma.getRange("F10").getValue());
+    firma.getRange(blankRow,7).setValue(firma.getRange("C12").getValue());
+    firma.getRange(blankRow,8).setValue(firma.getRange("F12").getValue());
+
+    firma.getRange(blankRow,9).setValue(firma.getRange("J10").getValue());
+    firma.getRange(blankRow,10).setValue(firma.getRange("J8").getValue());
+    firma.getRange(blankRow,11).setValue(firma.getRange("I12").getValue());
+
+    ui.alert(' "Firma cu numele  ' + firma.getRange("C4").getValue() +' a fost înregistrată. " ');
+
+    firma.getRange("C4").clear();
+    firma.getRange("C6").clear();
+    firma.getRange("F6").clear();
+    firma.getRange("C8").clear();
+    firma.getRange("C10").clear();
+    firma.getRange("F10").clear();
+    firma.getRange("C12").clear();
+    firma.getRange("F12").clear();
+    firma.getRange("J10").clear();
+    firma.getRange("J8").clear();
+    firma.getRange("J12").clear();
+    firma.getRange("I12").clear();
+  }
+}
+
+function adaugaClient(){
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var firma = ss.getSheetByName("Clienți");
+
+  var ui = SpreadsheetApp.getUi();
+
+  var raspuns = ui.alert("Adaugă client", "Vrei să adaugi acest client?", ui.ButtonSet.YES_NO);
+
+  if(raspuns == ui.Button.NO){
+    return;
+  }
+  if(adaugaClientCheck()){
+
+    var blankRow = firma.getLastRow()+1;
+
+    //ADAUGA FIRMA NOUA
+    firma.getRange(blankRow,1).setValue(firma.getRange("C4").getValue());
+    firma.getRange(blankRow,2).setValue(firma.getRange("C6").getValue());
+    firma.getRange(blankRow,3).setValue(firma.getRange("F6").getValue());
+    firma.getRange(blankRow,4).setValue(firma.getRange("C8").getValue());
+    firma.getRange(blankRow,5).setValue(firma.getRange("C10").getValue());
+    firma.getRange(blankRow,6).setValue(firma.getRange("F10").getValue());
+
+    firma.getRange(blankRow,7).setValue(firma.getRange("C12").getValue());
+    firma.getRange(blankRow,8).setValue(firma.getRange("G12").getValue());
+
+    ui.alert(' "Clientul cu numele  ' + firma.getRange("C4").getValue() +' a fost înregistrat. " ');
+
+    firma.getRange("C4").clear();
+    firma.getRange("C6").clear();
+    firma.getRange("F6").clear();
+    firma.getRange("C8").clear();
+    firma.getRange("C10").clear();
+    firma.getRange("F10").clear();
+    firma.getRange("C12").clear();
+    firma.getRange("G12").clear();
+  }
+}
+
+function adaugaProdus(){
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var firma = ss.getSheetByName("Produse si servicii");
+
+  var ui = SpreadsheetApp.getUi();
+
+  var raspuns = ui.alert("Adaugă", "Vrei să adaugi?", ui.ButtonSet.YES_NO);
+
+  if(raspuns == ui.Button.NO){
+    return;
+  }
+  if(adaugaProdusCheck()){
+
+    var blankRow = firma.getLastRow()+1;
+
+    //ADAUGA FIRMA NOUA
+    firma.getRange(blankRow,1).setValue(firma.getRange("C4").getValue());
+    firma.getRange(blankRow,2).setValue(firma.getRange("C6").getValue());
+
+    ui.alert(' "Produsul/Serviciul cu descrierea  ' + firma.getRange("C4").getValue() +' a fost înregistrat. " ');
+
+    firma.getRange("C4").clear();
+    firma.getRange("C6").clear();
+  }
+}
+//COMPLETEAZA AUTOMAT FIRMA MEA
+function completeazaFirma(){
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var generare = ss.getSheetByName("Generare");
+  var firma = ss.getSheetByName("Firmele mele");
+  var ui = SpreadsheetApp.getUi();
+
+  if(generare.getRange("C6").isBlank()==true){
+    ui.alert("Introdu o denumire");
+  }
+  else{
+
+
+    var lastRowFirme = firma.getLastRow();
+
+    // GASESTE DATELE FIRMEI 
+    var x_count = 0;
+    for(var v = 17; v <= lastRowFirme; v++)
+    {
+      
+      if(firma.getRange(v, 1).getValue() != generare.getRange("C6").getValue())
+      {  
+        x_count++;
+      }
+      else{
+        break;
+      }
+    }
+
+    var firmaRow = 17+x_count;
+
+    var nrFact = firma.getRange(firmaRow,7).getValue();
+
+    var istoric = ss.getSheetByName("Istoric Facturi");
+    var lastIstoric = istoric.getLastRow();
+
+    for(var i = 3; i<=lastIstoric;i++){
+      if(istoric.getRange(i,7).getValue() == generare.getRange("C6").getValue()){
+        nrFact++;
+      }
+    }
+
+    generare.getRange("G6").setValue(firma.getRange(firmaRow,2).getValue());
+    generare.getRange("I6").setValue(firma.getRange(firmaRow,3).getValue());
+    generare.getRange("C8").setValue(firma.getRange(firmaRow,4).getValue());
+    generare.getRange("C10").setValue("'0"+firma.getRange(firmaRow,5).getValue());
+    generare.getRange("G10").setValue(firma.getRange(firmaRow,6).getValue());
+    generare.getRange("C12").setValue(nrFact);//NR FACTURA
+
+    generare.getRange("H8").setValue(firma.getRange(firmaRow,9).getValue());
+    generare.getRange("L8").setValue(firma.getRange(firmaRow,10).getValue());
+    generare.getRange("F12").setValue(firma.getRange(firmaRow,11).getValue());
+
+    if(firma.getRange(firmaRow,8).getValue()=='DA'){//PLATITOR TVA
+      generare.getRange("I12").setValue("19");
+    }
+    else{//NEPLATITOR
+      generare.getRange("I12").setValue("Neplătitor");
+    }
+    
+  }
+
+}
+
+//COMPLETEAZA AUTOMAT CLIENTUL
+function completeazaClient(){
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var generare = ss.getSheetByName("Generare");
+  var firma = ss.getSheetByName("Clienți");
+  var ui = SpreadsheetApp.getUi();
+
+  if(generare.getRange("C17").isBlank()==true){
+    ui.alert("Introdu o denumire");
+  }
+  else{
+
+
+    var lastRowFirme = firma.getLastRow();
+
+    // GASESTE DATELE FIRMEI 
+    var x_count = 0;
+    for(var v = 17; v <= lastRowFirme; v++)
+    {
+      
+      if(firma.getRange(v, 1).getValue() != generare.getRange("C17").getValue())
+      {  
+        x_count++;
+      }
+      else{
+        break;
+      }
+    }
+
+    var firmaRow = 17+x_count;
+
+    generare.getRange("G17").setValue(firma.getRange(firmaRow,2).getValue());
+    generare.getRange("I17").setValue(firma.getRange(firmaRow,3).getValue());
+    generare.getRange("C19").setValue(firma.getRange(firmaRow,4).getValue());
+    generare.getRange("C21").setValue("'0"+firma.getRange(firmaRow,5).getValue());
+    generare.getRange("G21").setValue(firma.getRange(firmaRow,6).getValue());
+
+    generare.getRange("H19").setValue(firma.getRange(firmaRow,7).getValue());
+    generare.getRange("L19").setValue(firma.getRange(firmaRow,8).getValue());
+  }
+
+}
+
+//COMPLETEAZA AUTOMAT PRODUSE/SERVICII
+function completeazaProd(){
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var generare = ss.getSheetByName("Generare");
+  var firma = ss.getSheetByName("Produse si servicii");
+  var ui = SpreadsheetApp.getUi();
+
+  if(generare.getRange("C26").isBlank()==true){
+    ui.alert("Introdu o descriere");
+  }
+  else{
+
+
+    var lastRowFirme = firma.getLastRow();
+
+    // GASESTE DATELE PRODUSULUI
+    var x_count = 0;
+    for(var v = 12; v <= lastRowFirme; v++)
+    {
+      
+      if(firma.getRange(v, 1).getValue() != generare.getRange("C26").getValue())
+      {  
+        x_count++;
+      }
+      else{
+        break;
+      }
+    }
+
+    var firmaRow = 12+x_count;
+
+    generare.getRange("G26").setValue(firma.getRange(firmaRow,2).getValue());
+  }
+
+}
+
+function adaugaProd(){//populeaza campurile cu produse
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var generare = ss.getSheetByName("Generare");
+  var ui = SpreadsheetApp.getUi();
+
+  if(generare.getRange("C26").isBlank()==true){
+    ui.alert("Introdu o descriere");
+  }
+  else if(generare.getRange("G26").isBlank()==true){
+    ui.alert("Introdu un preț");
+  }
+  else if(generare.getRange("C28").isBlank()==true){
+    ui.alert("Introdu o cantitate");
+  }
+  else{
+    var lastRow = generare.getLastRow()+1;
+    //LAST ROW TO WRITE
+    var x_count = 0
+    for(var v = 32; v <= lastRow; v++)
+    {
+      
+      if(generare.getRange(v, 1).isBlank() != true)
+      {  
+        x_count++;
+      }
+      else
+      {
+        break;
+      }
+    }
+    
+
+    generare.getRange(x_count+32,1).setValue(generare.getRange("C26").getValue());
+    generare.getRange(x_count+32,2).setValue(generare.getRange("C28").getValue());
+    generare.getRange(x_count+32,3).setValue(generare.getRange("G26").getValue());
+  }
+}
+
+function golesteProd(){//goleste campurile cu produse
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var generare = ss.getSheetByName("Generare");
+  var ui = SpreadsheetApp.getUi();
+
+  var raspuns = ui.alert("Golește", "Vrei să golești lista?", ui.ButtonSet.YES_NO);
+
+  if(raspuns == ui.Button.NO){
+    return;
+  }
+  else{
+    var lastRow = generare.getLastRow();
+    //LAST ROW TO DEL
+    var x_count = 0
+    for(var v = 32; v <= lastRow; v++)
+    {
+      
+      if(generare.getRange(v, 1).isBlank() != true)
+      {  
+        generare.getRange(x_count+32,1).setValue("");
+        generare.getRange(x_count+32,2).setValue("");
+        generare.getRange(x_count+32,3).setValue("");
+        x_count++;
+      }
+      else
+      {
+        break;
+      }
+    }
+     ui.alert("Lista a fost golită.");
+    
+
+  }
+}
